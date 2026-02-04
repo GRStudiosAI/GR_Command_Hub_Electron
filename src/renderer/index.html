@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>GR Command Hub</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+
+  <body>
+    <!-- Custom Title Bar (frameless window controls) -->
+    <div class="titlebar">
+      <div class="dragRegion">
+        <div class="titlebarLeft">
+          <img id="logoTop" alt="logo" />
+          <div class="titleText">
+            <div class="title">GR COMMAND HUB</div>
+            <div class="sub">© 2026 GR Studios AI</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="winBtns">
+        <button id="btnMin" title="Minimize">—</button>
+        <button id="btnMax" title="Maximize">▢</button>
+        <button id="btnClose" class="close" title="Close">✕</button>
+      </div>
+    </div>
+
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <img id="logo" alt="logo" />
+          <div class="brandText">
+            <div class="title">COMMAND CENTER</div>
+            <div class="sub">Developed by TheBatGOD</div>
+          </div>
+        </div>
+
+        <button class="nav" data-view="debloater">WINDOWS DEBLOATER</button>
+        <button class="nav" data-view="purge">PURGE ENGINE</button>
+        <button class="nav" data-view="fse">XBOX FSE TOOLKIT</button>
+        <button class="nav" data-view="reg">REG CLEANER</button>
+
+        <div class="divider"></div>
+
+        <button class="nav" data-view="about">ABOUT</button>
+        <button class="nav" data-view="tos">TERMS OF SERVICE</button>
+
+        <div class="footer">Admin-required operations. Use carefully.</div>
+      </aside>
+
+      <main class="main">
+        <section id="view"></section>
+
+        <div class="terminalWrap">
+          <div class="terminalHeader">
+            <span>Terminal</span>
+            <button id="btnCopyLog" class="btnTiny">Copy Log</button>
+            <button id="btnClearLog" class="btnTiny">Clear</button>
+          </div>
+          <pre id="terminal" class="terminal"></pre>
+        </div>
+      </main>
+    </div>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>
