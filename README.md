@@ -14,10 +14,21 @@ Remove unnecessary Windows components and background services.
 Deep system cleaning and performance tuning.
 
 🎮 **Xbox FSE Toolkit**\
-Tools for Xbox Fullscreen Experience optimization.
+Tools for Xbox Fullscreen Experience optimization.\
+Feature availability is automatically gated using real build + UBR detection.
 
 🧹 **Registry Cleaner**\
 Scan and repair Windows registry issues safely.
+
+🧠 **Windows Scanner (Always Visible)**\
+Persistent system information scanner displayed in the left sidebar under the TOS button.\
+Shows Windows version, OS number, NT version, channel (Live / Insider), and build.\
+Uses build-based detection to prevent Windows 11 being misidentified as Windows 10.
+
+🧰 **Tools Installer System**\
+Modular framework for installing third-party tools safely.\
+Currently supports **ExplorerPatcher** (classic taskbar & shell behavior).\
+Designed for future tools such as 7-Zip and Notepad++.
 
 📦 **Dual Build System** - Installer Version - Portable Version
 
@@ -25,7 +36,7 @@ Scan and repair Windows registry issues safely.
 
 ## 🖥 Requirements
 
--   Windows 10 / 11
+-   Windows 10 / 11 (Windows 11 is the primary target)
 -   Node.js 18+
 -   PowerShell (Built-in)
 
@@ -33,7 +44,7 @@ Scan and repair Windows registry issues safely.
 
 ## 🧪 Development Setup
 
-``` powershell
+```powershell
 npm install
 npm start
 ```
@@ -72,13 +83,13 @@ Locations:
 
 ### CMD
 
-``` cmd
+```cmd
 npm run dist:nosign:cmd
 ```
 
 ### PowerShell
 
-``` powershell
+```powershell
 npm run dist:nosign:ps
 ```
 
@@ -107,7 +118,9 @@ During installation users can select:
 -   System changes run via **PowerShell (Admin required)**\
 -   Live logs stream directly into the UI terminal\
 -   Portable build auto copies into `public` folder\
--   Uses **robocopy + ExecWait** for stability
+-   Uses **robocopy + ExecWait** for stability\
+-   OS detection is **build-based**, not NT-version based\
+-   Feature gating relies on **build + UBR**, not OS name strings
 
 ------------------------------------------------------------------------
 
