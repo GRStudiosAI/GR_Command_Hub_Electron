@@ -1,19 +1,19 @@
 # Changelog
 
-## [Unreleased] – Windows Scanner & Tools Hub Update
+## [0.2.0] – Windows Scanner & Tools Hub Update
 
 ### ➕ Added
 - **Persistent Windows Scanner** (always visible in left sidebar)
-  - Displays real-time OS and system version information
+  - Displays real-time OS, version, channel, and build information
   - Positioned directly under the TOS button
 - **Tools Installer System**
-  - New tools installation framework added to the app
-  - Designed for safe, on-demand installation of third-party tools
+  - Modular framework for installing third-party tools
+  - Designed for safe, on-demand installs
 - **ExplorerPatcher Integration**
-  - Added as an installable tool via the Tools system
+  - Installable through the Tools system
   - Enables classic taskbar and shell behavior on Windows 11
-- **Windows Version Awareness**
-  - Support for modern Windows versions (24H2 / 25H2)
+- **Modern Windows Version Awareness**
+  - Support for 24H2 / 25H2
   - Insider channel detection (Canary, Dev, Beta, Release Preview)
 
 ---
@@ -23,35 +23,24 @@
 - Broken build detection returning `0.0`
 - Incorrect OS major value (`OS: 10`) on Windows 11
 - Missing or incorrect DisplayVersion values
-- Windows Scanner title not appearing in sidebar
-- Fallback logic that caused NT version to override real OS version
+- Missing **WINDOWS SCANNER** title in sidebar
+- NT version overriding real OS version in UI
 
 ---
 
 ### 🧠 Improved
-- Windows OS detection now uses **build number as the source of truth**
+- OS detection now uses **build number as source of truth**
   - `Build ≥ 22000 → Windows 11`
-- OS name detection no longer trusts NT version alone
-- Edition detection (Pro / Home / Enterprise) separated from OS detection
-- Build reporting now correctly shows **build.UBR**
-- Windows Scanner hardened against missing registry values
-- Feature gating logic (Xbox FSE tools) preserved and stabilized
+- OS version and edition detection fully decoupled
+- Build reporting now shows **build.UBR**
+- Scanner hardened against missing registry values
+- Feature gating (Xbox FSE tools) preserved and stabilized
 
 ---
 
 ### 🛡 Stability & Safety
 - No system components removed
 - No Windows security features disabled
-- No changes affecting Windows Update
-- All changes implemented at UI / detection level only
-- Safe for both Live and Insider builds
-
----
-
-## [0.1.0] – Initial Release
-- Core Command Hub UI
-- Windows Debloater
-- Purge Engine
-- Xbox FSE Toolkit
-- Registry Cleaner
-- Installer + Portable build system
+- No Windows Update breakage
+- All changes are UI and detection level only
+- Safe for Live and Insider builds
