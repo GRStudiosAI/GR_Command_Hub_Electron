@@ -19,6 +19,9 @@ contextBridge.exposeInMainWorld("api", {
   fseInstall: (opts) => ipcRenderer.invoke("fse:install", opts),
   fseUninstall: (opts) => ipcRenderer.invoke("fse:uninstall", opts),
 
+  // FSE version detection (Windows build + bundle channel)
+  getWindowsVersion: () => ipcRenderer.invoke("fse:getVersion"),
+
   regListCategories: () => ipcRenderer.invoke("reg:listCategories"),
   regScan: (cats) => ipcRenderer.invoke("reg:scan", cats),
   regFix: () => ipcRenderer.invoke("reg:fix"),

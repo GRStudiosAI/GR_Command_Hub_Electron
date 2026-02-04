@@ -50,6 +50,13 @@ app.whenReady().then(() => {
   createWindow();
 });
 
+// ----- IPC: FSE Version Detection -----
+ipcMain.handle("fse:getVersion", async () => {
+  // xboxFse exports getWindowsVersion
+  const { getWindowsVersion } = require("./xboxFse");
+  return await getWindowsVersion();
+});
+
 // ✅ Block DevTools + common inspect shortcuts + new windows
 app.on("browser-window-created", (_evt, window) => {
   // Deny window.open / target=_blank

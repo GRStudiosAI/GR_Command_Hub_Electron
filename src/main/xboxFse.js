@@ -1,4 +1,5 @@
 const { runPS } = require("./ps");
+const os = require("os");
 
 /*
   Xbox Full Screen Experience (Registry Only)
@@ -164,6 +165,139 @@ Start-Process explorer.exe
   return { ok: true, rebootRequired, rebooting: false };
 }
 
+/* =============================
+   WINDOWS VERSION INFO (for UI)
+   - Never throws
+   - Always returns a usable build/version string
+   - Covers 23H2 → 25H2 (Live + Insider)
+============================= */
+
+function _safeInt(v, fallback = null) {
+  const n = parseInt(String(v ?? "").trim(), 10);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function _mapRelease(build) {
+  // Stable anchors:
+  // 23H2 => 22631.x
+  // 24H2 => 26100.x
+  // 25H2 (Insider / early) => 26200.x (and newer)
+  if (build >= 26200) return "25H2";
+  if (build >= 26100) return "24H2";
+  if (build >= 22631) return "23H2";
+  return "pre-23H2";
+}
+
+function _mapBundle(build) {
+  // Your FSE bundles switch at 26100+
+  return build >= 26100 ? "modern" : "legacy";
+}
+
+async function getWindowsVersion() {
+  // Defaults (never leave UI empty)
+  const fallbackBuild = _safeInt(String(os.release() || "").split(".")[2], 0);
+  const fallback = {
+    build: fallbackBuild,
+    ubr: null,
+    full: String(fallbackBuild || "0"),
+    release: _mapRelease(fallbackBuild),
+    displayVersion: null,
+    productName: null,
+    edition: null,
+    isInsider: false,
+    ring: null,
+    branch: null,
+    contentType: null,
+    channel: _mapBundle(fallbackBuild),
+  };
+
+  try {
+    const script = `
+$ErrorActionPreference = "SilentlyContinue"
+
+$cv = Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"
+$build = [int]$cv.CurrentBuildNumber
+$ubr = [int]$cv.UBR
+$full = "$build.$ubr"
+
+$display = $cv.DisplayVersion
+if (-not $display) { $display = $cv.ReleaseId }
+
+$prod = $cv.ProductName
+$edition = $cv.EditionID
+
+$ring = $null
+$branch = $null
+$contentType = $null
+
+try {
+  $sel = Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\WindowsSelfHost\\UI\\Selection"
+  $ring = $sel.UIRing
+  $branch = $sel.UIBranch
+} catch {}
+
+try {
+  $app = Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\WindowsSelfHost\\Applicability"
+  if (-not $ring) { $ring = $app.Ring }
+  if (-not $branch) { $branch = $app.BranchName }
+  $contentType = $app.ContentType
+} catch {}
+
+$isInsider = $false
+if ($ring -or $branch -or $contentType) { $isInsider = $true }
+
+$release = if ($build -ge 26200) { "25H2" } elseif ($build -ge 26100) { "24H2" } elseif ($build -ge 22631) { "23H2" } else { "pre-23H2" }
+$bundle  = if ($build -ge 26100) { "modern" } else { "legacy" }
+
+[pscustomobject]@{
+  build        = $build
+  ubr          = $ubr
+  full         = $full
+  release      = $release
+  displayVersion = $display
+  productName  = $prod
+  edition      = $edition
+  isInsider    = $isInsider
+  ring         = $ring
+  branch       = $branch
+  contentType  = $contentType
+  channel      = $bundle
+} | ConvertTo-Json -Compress
+`;
+
+    const r = await runPS(script);
+    const raw = (r.stdout || "").trim();
+    const obj = JSON.parse(raw || "{}");
+
+    const build = _safeInt(obj.build, fallback.build);
+    const ubr = _safeInt(obj.ubr, null);
+
+    const out = {
+      build,
+      ubr,
+      full: obj.full || (ubr !== null ? `${build}.${ubr}` : String(build)),
+      release: obj.release || _mapRelease(build),
+      displayVersion: obj.displayVersion || null,
+      productName: obj.productName || null,
+      edition: obj.edition || null,
+      isInsider: !!obj.isInsider,
+      ring: obj.ring || null,
+      branch: obj.branch || null,
+      contentType: obj.contentType || null,
+      channel: obj.channel || _mapBundle(build),
+    };
+
+    // Guarantee key fields so UI never renders "Unknown"
+    if (!out.full) out.full = String(out.build || "0");
+    if (!out.channel) out.channel = _mapBundle(out.build || 0);
+    if (!out.release) out.release = _mapRelease(out.build || 0);
+
+    return out;
+  } catch {
+    return fallback;
+  }
+}
+
 /* ========================================
    UNINSTALL FILES (Not used)
    ======================================== */
@@ -234,5 +368,6 @@ module.exports = {
   installFseFiles,
   applyFseRegistry,
   uninstallFseFiles,
-  uninstallFseRegistry
+  uninstallFseRegistry,
+  getWindowsVersion
 };

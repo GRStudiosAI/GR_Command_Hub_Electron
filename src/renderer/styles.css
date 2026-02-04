@@ -184,6 +184,8 @@ body{
   gap:12px;
 }
 
+.grid2 .checkRow{ width:100%; }
+
 .sectionTitle{
   font-weight:700;
   margin:12px 0 8px;
@@ -258,6 +260,43 @@ body{
   overflow:auto;
   white-space:pre-wrap;
   flex:1;
+}
+
+/* =============================
+   FSE Version Box
+============================= */
+
+.fse-version-box{
+  margin: 12px 0 14px;
+  padding: 12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background: rgba(255,255,255,.03);
+}
+
+.fse-version-title{
+  font-weight:700;
+  font-size:12px;
+  color:#cfe4ff;
+  text-transform:uppercase;
+  letter-spacing:.6px;
+  margin-bottom:8px;
+}
+
+.fse-version-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:6px 0;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+
+.fse-version-row:first-of-type{border-top:none;}
+
+.fse-version-row span{
+  font-family: var(--mono);
+  font-size:12.5px;
+  color: var(--text);
 }
 
 /* Responsive */

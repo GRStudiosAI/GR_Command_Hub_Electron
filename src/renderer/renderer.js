@@ -52,6 +52,40 @@ async function runAndPrint(promise) {
   }
 }
 
+// ---------------------------
+// FSE UI: Windows build + bundle detection
+// ---------------------------
+async function loadFseVersionInfo() {
+  const elBuild = document.getElementById("uiWinBuild");
+  const elChan = document.getElementById("uiWinChannel");
+
+  // If the FSE view isn't mounted yet, do nothing.
+  if (!elBuild || !elChan) return;
+
+  try {
+    const v = await window.api.getWindowsVersion();
+    // v: { build, ubr, full, release, displayVersion, productName, edition, channel, isInsider, ring, branch }
+
+    const releaseText = v.release ? `${v.release}` : (v.displayVersion || "");
+    const insiderText = v.isInsider ? "Insider" : "Live";
+
+    const full = v.full || (v.build ? String(v.build) : "");
+    elBuild.textContent = releaseText
+      ? `Build: ${full} (${releaseText} • ${insiderText})`
+      : `Build: ${full} (${insiderText})`;
+
+    const bundle = String(v.channel || "").toUpperCase() || "LEGACY";
+    const ringBits = [v.ring, v.branch].filter(Boolean).join(" | ");
+    elChan.textContent = ringBits
+      ? `Bundle: ${bundle} — ${ringBits}`
+      : `Bundle: ${bundle}`;
+  } catch (err) {
+    elBuild.textContent = "Build: (detection error)";
+    elChan.textContent = "Bundle: (detection error)";
+    console.error(err);
+  }
+}
+
 /* -------- Copy / Paste support --------
    - Copy selected text to clipboard
    - Paste into focused input/textarea
@@ -113,7 +147,10 @@ function renderDebloater() {
     ["Run Disk Cleanup", "run_disk_cleanup"],
     ["Set Services to Manual", "set_services_manual"],
   ];
-  essentialIds.forEach(([t, k]) => essential.appendChild(checkbox(t, k, false)));
+  const essentialGrid = document.createElement("div");
+  essentialGrid.className = "grid2";
+  essentialIds.forEach(([t, k]) => essentialGrid.appendChild(checkbox(t, k, false)));
+  essential.appendChild(essentialGrid);
 
   const advanced = document.createElement("div");
   advanced.innerHTML = `<div class="sectionTitle">Advanced Tweaks - CAUTION</div>`;
@@ -123,7 +160,10 @@ function renderDebloater() {
     ["Uninstall OneDrive", "remove_onedrive"],
     ["Set Classic Right-Click Menu", "classic_context_menu"],
   ];
-  advIds.forEach(([t, k]) => advanced.appendChild(checkbox(t, k, false)));
+  const advancedGrid = document.createElement("div");
+  advancedGrid.className = "grid2";
+  advIds.forEach(([t, k]) => advancedGrid.appendChild(checkbox(t, k, false)));
+  advanced.appendChild(advancedGrid);
 
   const btnRow = document.createElement("div");
   btnRow.className = "btnRow";
@@ -193,6 +233,12 @@ function renderFSE() {
   card.innerHTML = `
     <div class="h1" style="color:#7CFF8A">XBOX FSE TOOLKIT</div>
     <div class="p">Install Hidden Features folder and/or apply registry + ViVeTool IDs.</div>
+
+    <div class="fse-version-box">
+      <div class="fse-version-title">Windows Detection</div>
+      <div class="fse-version-row"><span id="uiWinBuild">Build: Detecting...</span></div>
+      <div class="fse-version-row"><span id="uiWinChannel">Bundle: Detecting...</span></div>
+    </div>
   `;
 
   card.appendChild(
@@ -227,6 +273,9 @@ function renderFSE() {
 
   card.appendChild(btnRow);
   view.appendChild(card);
+
+  // Populate version box once the DOM nodes exist
+  loadFseVersionInfo();
 }
 
 async function renderReg() {
