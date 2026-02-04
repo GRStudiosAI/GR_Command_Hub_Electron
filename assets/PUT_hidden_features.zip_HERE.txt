@@ -1,0 +1,1 @@
+Place hidden_features.zip in this assets folder so the FSE installer can extract it.
