@@ -307,3 +307,24 @@ body{
   .grid2{ grid-template-columns: 1fr; }
   .main{ grid-template-rows: 1fr 240px; }
 }
+
+/* Always-on Windows info box (left sidebar) */
+.winInfo{
+  margin: 10px 12px 8px;
+  padding: 10px 10px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.winInfo .winTitle{
+  font-weight: 800;
+  letter-spacing: .8px;
+  opacity: .95;
+  margin-bottom: 6px;
+}
+.winInfo .winLine{
+  opacity: .95;
+  margin: 2px 0;
+  word-break: break-word;
+}

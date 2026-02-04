@@ -66,6 +66,28 @@ async function loadFseVersionInfo() {
     const v = await window.api.getWindowsVersion();
     // v: { build, ubr, full, release, displayVersion, productName, edition, channel, isInsider, ring, branch }
 
+    // Patch: FSE version guard
+    // Disable the FSE registry checkbox when Windows is below 26220.7752.
+    // (Do not change scanner or UI structure.)
+    const fseReg = document.getElementById("fse_reg");
+    if (fseReg) {
+      const build = Number(v.build || 0);
+      const ubr = Number(v.ubr || 0);
+      const supported = build > 26220 || (build === 26220 && ubr >= 7752);
+      fseReg.disabled = !supported;
+      if (!supported) fseReg.checked = false;
+    }
+
+    // Also disable the Hidden Features folder install checkbox on unsupported builds.
+    const fseFiles = document.getElementById("fse_files");
+    if (fseFiles) {
+      const build = Number(v.build || 0);
+      const ubr = Number(v.ubr || 0);
+      const supported = build > 26220 || (build === 26220 && ubr >= 7752);
+      fseFiles.disabled = !supported;
+      if (!supported) fseFiles.checked = false;
+    }
+
     const releaseText = v.release ? `${v.release}` : (v.displayVersion || "");
     const insiderText = v.isInsider ? "Insider" : "Live";
 
@@ -85,6 +107,113 @@ async function loadFseVersionInfo() {
     console.error(err);
   }
 }
+
+
+async function loadSidebarVersionInfo() {
+  const elOs = document.getElementById("winOs");
+  const elOsNum = document.getElementById("winOsNum");
+  const elNt = document.getElementById("winNt");
+  const elVer = document.getElementById("winVer");
+  const elChan = document.getElementById("winChan");
+  const elBuild = document.getElementById("winBuild");
+
+  if (!elOs || !elVer || !elChan || !elBuild) return;
+
+  try {
+    const v = await window.api.getWindowsVersion();
+
+    // -----------------------------
+    // BUILD NUMBER (source of truth)
+    // -----------------------------
+    const buildNum =
+      Number(v.build) ||
+      Number(String(v.full || "").split(".")[0]) ||
+      0;
+
+    // -----------------------------
+    // OS MAJOR (10 vs 11)
+    // -----------------------------
+    const osMajor = buildNum >= 22000 ? "11" : (buildNum > 0 ? "10" : "—");
+    if (elOsNum) elOsNum.textContent = `OS: ${osMajor}`;
+
+    // -----------------------------
+    // EDITION (Pro / Home / etc.)
+    // -----------------------------
+    let edition = "";
+    if (v.edition && String(v.edition).trim()) {
+      edition = String(v.edition).trim();
+    } else if (v.productName) {
+      if (/enterprise/i.test(v.productName)) edition = "Enterprise";
+      else if (/education/i.test(v.productName)) edition = "Education";
+      else if (/pro/i.test(v.productName)) edition = "Pro";
+      else if (/home/i.test(v.productName)) edition = "Home";
+    }
+
+    // -----------------------------
+    // WINDOWS DISPLAY NAME
+    // (DO NOT trust ProductName)
+    // -----------------------------
+    const windowsName = `Windows ${osMajor}${edition ? " " + edition : ""}`.trim();
+    elOs.textContent = `Windows: ${windowsName}`;
+
+    // -----------------------------
+    // NT VERSION
+    // -----------------------------
+    const nt = (v.ntVersion && String(v.ntVersion).trim())
+      ? String(v.ntVersion).trim()
+      : "10.0";
+
+    const ntFull = (v.ntFull && String(v.ntFull).trim())
+      ? String(v.ntFull).trim()
+      : "";
+
+    elNt.textContent = ntFull
+      ? `NT: ${nt} (${ntFull})`
+      : `NT: ${nt}`;
+
+    // -----------------------------
+    // DISPLAY VERSION (25H2 / 24H2)
+    // -----------------------------
+    const ver = (v.version && String(v.version).trim())
+      ? String(v.version).trim()
+      : "—";
+    elVer.textContent = `Version: ${ver}`;
+
+    // -----------------------------
+    // CHANNEL / INSIDER
+    // -----------------------------
+    let chan = v.channel || "Live";
+    const extras = [];
+    if (v.branch) extras.push(v.branch);
+    if (v.ring && !String(v.ring).toLowerCase().includes("unknown")) {
+      extras.push(v.ring);
+    }
+    if (extras.length) chan += ` (${extras.join(", ")})`;
+    elChan.textContent = `Channel: ${chan}`;
+
+    // -----------------------------
+    // BUILD (build.UBR preferred)
+    // -----------------------------
+    const fullBuild =
+      (v.full && String(v.full).trim())
+        ? String(v.full).trim()
+        : (v.build && v.ubr != null)
+          ? `${v.build}.${v.ubr}`
+          : (v.build ? String(v.build) : "—");
+
+    elBuild.textContent = `Build: ${fullBuild}`;
+
+  } catch (err) {
+    console.error("Windows scanner failed:", err);
+    elOs.textContent = "Windows: —";
+    if (elOsNum) elOsNum.textContent = "OS: —";
+    elNt.textContent = "NT: —";
+    elVer.textContent = "Version: —";
+    elChan.textContent = "Channel: —";
+    elBuild.textContent = "Build: —";
+  }
+}
+
 
 /* -------- Copy / Paste support --------
    - Copy selected text to clipboard
@@ -278,6 +407,73 @@ function renderFSE() {
   loadFseVersionInfo();
 }
 
+// ---------------------------
+// Tools Installer (dynamic downloader)
+// ---------------------------
+async function renderTools() {
+  setActive("tools");
+  view.innerHTML = "";
+
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `
+    <div class="h1">TOOLS INSTALLER</div>
+    <div class="p">
+      Installs tools safely by downloading the latest official releases (recommended for public builds).
+      Requires internet connection and Administrator for system-wide installs.
+    </div>
+    <div id="toolsWrap" class="grid2"></div>
+  `;
+
+  view.appendChild(card);
+
+  const wrap = document.getElementById("toolsWrap");
+  wrap.innerHTML = `<div class="p">Loading tools…</div>`;
+
+  const tools = await runAndPrint(window.api.toolsList());
+  if (!tools?.tools) {
+    wrap.innerHTML = `<div class="p">Unable to load tools list.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = "";
+
+  tools.tools.forEach((t) => {
+    const tile = document.createElement("div");
+    tile.className = "card";
+    tile.style.margin = "0";
+
+    const status = t.installed ? "Installed" : "Not installed";
+    const statusColor = t.installed ? "#7CFF8A" : "#ffb86b";
+
+    tile.innerHTML = `
+      <div class="h1" style="font-size:18px">${t.name}</div>
+      <div class="p" style="margin-top:6px">${t.description || ""}</div>
+      <div class="p" style="margin-top:8px"><b>Status:</b> <span style="color:${statusColor}">${status}</span></div>
+      <div class="btnRow" style="margin-top:12px;justify-content:flex-start;gap:10px"></div>
+    `;
+
+    const btnRow = tile.querySelector(".btnRow");
+
+    const installBtn = button("INSTALL / UPDATE", "primary", async () => {
+      log(`[*] Installing ${t.name}…`);
+      await runAndPrint(window.api.toolsInstall(t.id));
+      await renderTools();
+    });
+
+    const uninstallBtn = button("UNINSTALL", "danger", async () => {
+      log(`[*] Uninstalling ${t.name}…`);
+      await runAndPrint(window.api.toolsUninstall(t.id));
+      await renderTools();
+    });
+
+    btnRow.appendChild(installBtn);
+    btnRow.appendChild(uninstallBtn);
+
+    wrap.appendChild(tile);
+  });
+}
+
 async function renderReg() {
   setActive("reg");
   view.innerHTML = "";
@@ -373,6 +569,7 @@ document.querySelectorAll(".nav").forEach((btn) => {
     if (btn.dataset.view === "purge") renderPurge();
     if (btn.dataset.view === "fse") renderFSE();
     if (btn.dataset.view === "reg") await renderReg();
+    if (btn.dataset.view === "tools") await renderTools();
     if (btn.dataset.view === "about") renderAbout();
     if (btn.dataset.view === "tos") renderTOS();
   });
@@ -388,6 +585,9 @@ document.querySelectorAll(".nav").forEach((btn) => {
 
   sidebarLogo.src = "../../assets/logo.png";
   topLogo.src = "../../assets/logo.png";
+
+  // Always-on OS info (left sidebar)
+  loadSidebarVersionInfo();
 
   renderDebloater();
 })();

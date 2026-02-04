@@ -10,6 +10,7 @@ const {
   uninstallFseRegistry,
 } = require("./xboxFse");
 const { advancedScan, fixRegistryIssues, REG_MAP } = require("./regCleaner");
+const { getTools, isInstalled, installTool, uninstallTool } = require("./toolsInstaller");
 
 let mainWindow = null;
 
@@ -154,4 +155,52 @@ ipcMain.handle("reg:fix", async () => {
   const log = (m) => logs.push(`[*] ${m}`);
   const count = await fixRegistryIssues(log);
   return { ok: true, count, logs };
+});
+
+// ----- IPC: Tools Installer -----
+ipcMain.handle("tools:list", async () => {
+  const logs = [];
+  const log = (m) => logs.push(String(m));
+
+  const tools = getTools();
+  // Compute installed status (best-effort)
+  const out = [];
+  for (const t of tools) {
+    try {
+      const installed = await isInstalled(t, log);
+      out.push({
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        installed,
+      });
+    } catch (e) {
+      out.push({ id: t.id, name: t.name, description: t.description, installed: false });
+      log(`[*] Status check failed for ${t.id}: ${e.message}`);
+    }
+  }
+  return { ok: true, tools: out, logs };
+});
+
+ipcMain.handle("tools:install", async (_evt, toolId) => {
+  const logs = [];
+  const log = (m) => logs.push(`[*] ${m}`);
+  const tools = getTools();
+  const tool = tools.find((t) => t.id === toolId);
+  if (!tool) return { ok: false, logs: [`[*] Unknown tool: ${toolId}`] };
+
+  const downloadRoot = path.join(app.getPath("userData"), "downloads");
+  await installTool(tool, downloadRoot, log);
+  return { ok: true, logs };
+});
+
+ipcMain.handle("tools:uninstall", async (_evt, toolId) => {
+  const logs = [];
+  const log = (m) => logs.push(`[*] ${m}`);
+  const tools = getTools();
+  const tool = tools.find((t) => t.id === toolId);
+  if (!tool) return { ok: false, logs: [`[*] Unknown tool: ${toolId}`] };
+
+  await uninstallTool(tool, log);
+  return { ok: true, logs };
 });

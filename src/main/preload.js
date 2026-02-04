@@ -25,4 +25,9 @@ contextBridge.exposeInMainWorld("api", {
   regListCategories: () => ipcRenderer.invoke("reg:listCategories"),
   regScan: (cats) => ipcRenderer.invoke("reg:scan", cats),
   regFix: () => ipcRenderer.invoke("reg:fix"),
+
+  // Tools installer (dynamic)
+  toolsList: () => ipcRenderer.invoke("tools:list"),
+  toolsInstall: (toolId) => ipcRenderer.invoke("tools:install", String(toolId || "")),
+  toolsUninstall: (toolId) => ipcRenderer.invoke("tools:uninstall", String(toolId || "")),
 });
