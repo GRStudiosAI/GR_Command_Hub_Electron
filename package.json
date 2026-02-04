@@ -1,0 +1,91 @@
+{
+  "name": "gr-command-hub",
+  "version": "1.0.0",
+  "description": "GR Command Hub (Electron) - Debloater, Purge Engine, Xbox FSE Toolkit, Registry Cleaner",
+  "main": "src/main/main.js",
+  "author": "TheBatGOD",
+  "license": "UNLICENSED",
+
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+
+    "dist": "npm run dist:installer-with-portable",
+
+    "dist:portable": "electron-builder --win portable",
+    "dist:nsis": "electron-builder --win nsis",
+
+    "dist:installer-with-portable": "npm run dist:portable && node scripts/stage-portable-for-installer.js && npm run dist:nsis",
+
+    "dist:nosign:cmd": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& npm run dist:portable && node scripts/stage-portable-for-installer.js && npm run dist:nsis && node scripts/copy-portable-to-public.js",
+
+    "dist:nosign:ps": "powershell -NoProfile -Command \"$env:CSC_IDENTITY_AUTO_DISCOVERY='false'; npm run dist:portable; if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}; node scripts/stage-portable-for-installer.js; if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}; npm run dist:nsis; if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}; node scripts/copy-portable-to-public.js\"",
+
+    "dist:nosign:installer-with-portable:cmd": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& npm run dist:portable && node scripts/stage-portable-for-installer.js && npm run dist:nsis",
+
+    "dist:nosign:installer-with-portable:ps": "powershell -NoProfile -Command \"$env:CSC_IDENTITY_AUTO_DISCOVERY='false'; npm run dist:portable; if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}; node scripts/stage-portable-for-installer.js; if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}; npm run dist:nsis\""
+  },
+
+  "devDependencies": {
+    "electron": "^40.0.0",
+    "electron-builder": "^26.6.0"
+  },
+
+  "build": {
+    "appId": "com.grstudios.commandhub",
+    "productName": "GR Command Hub",
+    "artifactName": "${productName} Setup.exe",
+
+    "asar": true,
+
+    "directories": {
+      "buildResources": "assets",
+      "output": "dist"
+    },
+
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+
+    "extraResources": [
+      {
+        "from": "assets",
+        "to": "assets"
+      }
+    ],
+
+    "win": {
+      "icon": "assets/logo.ico",
+      "requestedExecutionLevel": "requireAdministrator",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+
+    "portable": {
+      "artifactName": "GR Command Hub Portable.exe",
+      "requestExecutionLevel": "user"
+    },
+
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": false,
+      "createStartMenuShortcut": false,
+      "shortcutName": "GR Command Hub",
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh",
+      "warningsAsErrors": false
+    }
+  }
+}
