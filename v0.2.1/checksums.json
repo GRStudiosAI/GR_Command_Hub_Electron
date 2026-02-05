@@ -1,0 +1,9 @@
+{
+  "app": "GR Command Hub",
+  "version": "0.2.1",
+  "algorithm": "SHA256",
+  "files": {
+    "GR_Command_Hub_Setup.exe": "PASTE_INSTALLER_SHA256_HERE",
+    "GR_Command_Hub_Portable.exe": "PASTE_PORTABLE_SHA256_HERE"
+  }
+}
