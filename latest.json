@@ -1,0 +1,14 @@
+{
+  "app": "GR Command Hub",
+  "version": "0.2.1",
+  "channel": "stable",
+  "releaseDate": "2026-02-04",
+  "notes": "Windows Scanner fixes, Tools Installer system added, Telemetry disable logic corrected, Registry Cleaner stability fixes.",
+  "installer": "https://raw.githubusercontent.com/GR-Studios-AI/GR_Command_Hub/Update-Server/v0.2.1/GR_Command_Hub_Setup.exe",
+  "portable": "https://raw.githubusercontent.com/GR-Studios-AI/GR_Command_Hub/Update-Server/v0.2.1/GR_Command_Hub_Portable.exe",
+  "sha256": {
+    "installer": "ADD_INSTALLER_SHA256_HERE",
+    "portable": "ADD_PORTABLE_SHA256_HERE"
+  },
+  "mandatory": false
+}
