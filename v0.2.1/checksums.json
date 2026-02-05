@@ -3,7 +3,7 @@
   "version": "0.2.1",
   "algorithm": "SHA256",
   "files": {
-    "GR_Command_Hub_Setup.exe": "sha256:883b044ed432565bf8a0de4160a8ceec59d3e26448e33105662b3bb1e5dadffd",
+    "GR_Command_Hub_Setup.exe": "883b044ed432565bf8a0de4160a8ceec59d3e26448e33105662b3bb1e5dadffd",
     "GR_Command_Hub_Portable.exe": "PASTE_PORTABLE_SHA256_HERE"
   }
 }
