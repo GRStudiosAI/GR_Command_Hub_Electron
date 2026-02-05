@@ -251,7 +251,26 @@ document.getElementById("btnClose").onclick = () => window.api.winClose();
 
 /* -------- Terminal controls -------- */
 document.getElementById("btnClearLog").onclick = () => (terminal.textContent = "");
-document.getElementById("btnCopyLog").onclick = () => window.api.copy(terminal.textContent);
+document.getElementById("btnCopyLog").onclick = async () => {
+  const text = terminal.textContent || "";
+  if (!text.trim()) return;
+
+  // Primary: Electron clipboard bridge
+  try {
+    window.api.copy(text);
+  } catch {}
+
+  // Fallback: Web clipboard API (can be more reliable on some setups)
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    }
+  } catch {}
+
+  // Give user feedback in the terminal
+  terminal.textContent += "\n[*] Copied terminal log to clipboard.";
+  terminal.scrollTop = terminal.scrollHeight;
+};
 
 /* -------- Views -------- */
 function renderDebloater() {

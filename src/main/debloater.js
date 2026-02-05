@@ -67,26 +67,78 @@ try {
   }
 
   // --- 2) Telemetry / DiagTrack ---
+  
+  // --- Disable Telemetry (as far as Windows allows) ---
   if (tweaks.disable_telemetry) {
-    log("[*] Hard-locking Telemetry & DiagTrack...");
+    log("[*] Disabling Telemetry...");
 
-    // Ensure policy keys exist then set values
     await ps(
       `
-${psEnsureRegKey("HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection")}
-Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection" -Name "AllowTelemetry" -Type DWord -Value 0 -Force
+$ok = $true
 
-${psEnsureRegKey("HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection")}
-Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection" -Name "AllowTelemetry" -Type DWord -Value 0 -Force
+function Ensure-Key([string]$path) {
+  try {
+    if (!(Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
+  } catch {
+    $script:ok = $false
+    "KEY_CREATE_FAILED: $path :: " + $_.Exception.Message
+  }
+}
 
-try { Stop-Service -Name "DiagTrack" -Force -ErrorAction Stop } catch {}
-try { Set-Service -Name "DiagTrack" -StartupType Disabled -ErrorAction Stop } catch {}
-"TELEMETRY_LOCKED"
+# Policy paths
+$k1 = "HKLM:\\\\SOFTWARE\\\\Policies\\\\Microsoft\\\\Windows\\\\DataCollection"
+$k2 = "HKLM:\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Policies\\\\DataCollection"
+$k3 = "HKLM:\\\\SOFTWARE\\\\Policies\\\\Microsoft\\\\Windows\\\\AdvertisingInfo"
+
+Ensure-Key $k1
+if (Test-Path $k1) {
+  try { Set-ItemProperty -Path $k1 -Name "AllowTelemetry" -Type DWord -Value 0 -Force | Out-Null } catch { $ok = $false; "SET_FAILED: $k1 AllowTelemetry :: " + $_.Exception.Message }
+  try { Set-ItemProperty -Path $k1 -Name "DisableTelemetry" -Type DWord -Value 1 -Force | Out-Null } catch { $ok = $false; "SET_FAILED: $k1 DisableTelemetry :: " + $_.Exception.Message }
+}
+
+Ensure-Key $k2
+if (Test-Path $k2) {
+  try { Set-ItemProperty -Path $k2 -Name "AllowTelemetry" -Type DWord -Value 0 -Force | Out-Null } catch { $ok = $false; "SET_FAILED: $k2 AllowTelemetry :: " + $_.Exception.Message }
+}
+
+# Disable services
+$services = @("DiagTrack","dmwappushservice")
+foreach ($s in $services) {
+  try { Stop-Service -Name $s -Force -ErrorAction SilentlyContinue | Out-Null } catch {}
+  try { Set-Service -Name $s -StartupType Disabled -ErrorAction SilentlyContinue | Out-Null } catch {}
+}
+
+# Disable common telemetry tasks (best-effort)
+$tasks = @(
+  @{Path="\\Microsoft\\Windows\\Application Experience\\"; Name="Microsoft Compatibility Appraiser"},
+  @{Path="\\Microsoft\\Windows\\Application Experience\\"; Name="ProgramDataUpdater"},
+  @{Path="\\Microsoft\\Windows\\Application Experience\\"; Name="StartupAppTask"},
+  @{Path="\\Microsoft\\Windows\\Autochk\\"; Name="Proxy"},
+  @{Path="\\Microsoft\\Windows\\Customer Experience Improvement Program\\"; Name="Consolidator"},
+  @{Path="\\Microsoft\\Windows\\Customer Experience Improvement Program\\"; Name="KernelCeipTask"},
+  @{Path="\\Microsoft\\Windows\\Customer Experience Improvement Program\\"; Name="UsbCeip"},
+  @{Path="\\Microsoft\\Windows\\DiskDiagnostic\\"; Name="Microsoft-Windows-DiskDiagnosticDataCollector"},
+  @{Path="\\Microsoft\\Windows\\Feedback\\Siuf\\"; Name="DmClient"},
+  @{Path="\\Microsoft\\Windows\\Feedback\\Siuf\\"; Name="DmClientOnScenarioDownload"}
+)
+
+foreach ($t in $tasks) {
+  try { Disable-ScheduledTask -TaskPath $t.Path -TaskName $t.Name -ErrorAction SilentlyContinue | Out-Null } catch {}
+}
+
+# Advertising ID (optional)
+Ensure-Key $k3
+if (Test-Path $k3) {
+  try { Set-ItemProperty -Path $k3 -Name "DisabledByGroupPolicy" -Type DWord -Value 1 -Force | Out-Null } catch { $ok = $false; "SET_FAILED: $k3 DisabledByGroupPolicy :: " + $_.Exception.Message }
+}
+
+if ($ok) { "TELEMETRY_DISABLED" } else { "TELEMETRY_PARTIAL_OR_FAILED" }
 `,
       log,
       "Telemetry"
     );
   }
+
 
   // --- 3) Disable location privacy ---
   if (tweaks.disable_location) {

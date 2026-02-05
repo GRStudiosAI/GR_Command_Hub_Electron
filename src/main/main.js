@@ -1,6 +1,8 @@
 const { app, BrowserWindow, ipcMain, Menu } = require("electron");
 const path = require("path");
 
+const { checkForUpdates } = require("./updater");
+
 const { applyTweaks, revertTweaks } = require("./debloater");
 const { executeCriticalPurge } = require("./purge");
 const {
@@ -47,8 +49,10 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   createWindow();
+  // Auto-check updates (silent) using Update-Server branch feed
+  await checkForUpdates({ silent: true }, (m) => console.log(m));
 });
 
 // ----- IPC: FSE Version Detection -----
@@ -98,6 +102,11 @@ ipcMain.handle("win:maximizeToggle", () => {
 
 ipcMain.handle("win:close", () => {
   if (mainWindow) mainWindow.close();
+});
+
+ipcMain.handle("update:check", async () => {
+  // Manual check (shows dialogs)
+  return await checkForUpdates({ silent: false }, (m) => console.log(m));
 });
 
 // ----- IPC: Debloater -----

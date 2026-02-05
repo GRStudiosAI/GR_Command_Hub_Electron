@@ -43,6 +43,8 @@ function _CleanPath([string]$s) {
   $x = $s.Trim()
   # remove leading/trailing quotes
   $x = $x.Trim('"')
+  # MuiCache value-names often append metadata like ".FriendlyAppName" or ".ApplicationCompany"
+  $x = ($x -replace '\.(FriendlyAppName|ApplicationCompany|ApplicationDescription|ApplicationName|Company)$','')
   # handle "C:\\path\\file.dll,0" or similar
   if ($x -match ',\\s*\\d+$') { $x = ($x -split ',')[0] }
   # expand env vars
@@ -357,35 +359,140 @@ async function fixRegistryIssues(log) {
   }
 
   log(`--- REPAIRING ${found.length} ITEM(S) ---`);
+  // Keep one clear start line (UI already shows the button action)
+  log("[*] Fixing issues from last scan...");
 
-  // Delete ONLY the specific value found
+  // Determine elevation. HKLM fixes require admin.
+  let isAdmin = false;
+  try {
+    const adminCheck = await runPS(`([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) | ConvertTo-Json -Compress`);
+    isAdmin = String((adminCheck.stdout || "").trim()).toLowerCase().includes("true");
+  } catch {
+    isAdmin = false;
+  }
+
+  // IMPORTANT:
+  // Deleting one-by-one by spawning a new PowerShell process for each entry is slow,
+  // which makes the UI look "stuck" (logs only print after IPC resolves).
+  // Batch deletions into a single PowerShell run to finish fast and return a full log.
+
+  const ops = [];
   for (const item of found) {
     const hive = item.hive;
     const sub = item.path || "";
     const regPath = sub ? `${hive}\\${sub}` : hive;
     const name = item.name;
 
-    // Safety: never delete default values in bulk unless explicitly found
     if (!name) continue;
+    if (name === "(Default)") continue; // keep safety rule
 
-    try {
-      // For "(Default)" in App Paths, the value name is empty in reg.exe syntax,
-      // so we skip deleting default unless you later choose to implement it safely.
-      if (name === "(Default)") {
-        log(` Skipped default value for safety: ${regPath}`);
-        continue;
-      }
+    const needsAdmin = String(hive).toUpperCase() === "HKLM";
 
-      await runPS(`reg delete "${regPath}" /v "${name}" /f`);
-      log(` Removed: [${item.category}] ${regPath} -> ${name}`);
-    } catch {
-      // don't fail whole run on one delete
+    if (needsAdmin && !isAdmin) {
+      // Don't attempt HKLM writes without admin; report cleanly.
+      ops.push({ category: item.category || "Unknown", regPath, name, skip: true, reason: "Requires Administrator" });
+      continue;
+    }
+
+    ops.push({ category: item.category || "Unknown", regPath, name, skip: false, reason: "" });
+  }
+
+  if (!ops.length) {
+    log("Nothing safe to fix from last scan.");
+    return 0;
+  }
+
+  const b64 = Buffer.from(JSON.stringify(ops), "utf8").toString("base64");
+  const ps = `
+$ErrorActionPreference = 'SilentlyContinue'
+$json = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${b64}'))
+$ops = $json | ConvertFrom-Json
+$out = @()
+
+function _HiveAndSubkey([string]$rp) {
+  if ([string]::IsNullOrWhiteSpace($rp)) { return $null }
+  # rp format: HKLM\SOFTWARE\... or HKCU\Software\...
+  $i = $rp.IndexOf('\\')
+  if ($i -lt 0) { return @{ hive=$rp; subkey='' } }
+  return @{ hive=$rp.Substring(0,$i); subkey=$rp.Substring($i+1) }
+}
+
+function _OpenBaseKey([string]$hiveName) {
+  switch ($hiveName.ToUpperInvariant()) {
+    'HKLM' { return [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, [Microsoft.Win32.RegistryView]::Registry64) }
+    'HKCU' { return [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::CurrentUser, [Microsoft.Win32.RegistryView]::Default) }
+    'HKCR' { return [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::ClassesRoot, [Microsoft.Win32.RegistryView]::Default) }
+    'HKU'  { return [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::Users, [Microsoft.Win32.RegistryView]::Default) }
+    'HKCC' { return [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::CurrentConfig, [Microsoft.Win32.RegistryView]::Default) }
+    default { return $null }
+  }
+}
+
+foreach ($op in $ops) {
+  $rp = [string]$op.regPath
+  $nm = [string]$op.name
+  $cat = [string]$op.category
+  $skip = $false
+  $reason = $null
+  try { $skip = [bool]$op.skip } catch { $skip = $false }
+  try { $reason = [string]$op.reason } catch { $reason = $null }
+
+  if ($skip) {
+    $out += [pscustomobject]@{ ok = $false; category = $cat; regPath = $rp; name = $nm; error = $reason }
+    continue
+  }
+
+  $ok = $false
+  $err = $null
+  try {
+    $hs = _HiveAndSubkey $rp
+    $base = _OpenBaseKey $hs.hive
+    if ($base -eq $null) { throw "Unsupported hive: $($hs.hive)" }
+
+    $key = $base.OpenSubKey($hs.subkey, $true)
+    if ($key -eq $null) { throw "Key not found" }
+
+    # DeleteValue handles any characters in the value name (including backslashes) reliably.
+    $key.DeleteValue($nm, $false)
+    $key.Close()
+    $base.Close()
+    $ok = $true
+  } catch {
+    $ok = $false
+    $err = $_.Exception.Message
+  }
+
+  $out += [pscustomobject]@{ ok = $ok; category = $cat; regPath = $rp; name = $nm; error = $err }
+}
+
+$out | ConvertTo-Json -Compress
+`;
+
+  let results = [];
+  try {
+    const res = await runPS(ps);
+    results = normalizeJson(res.stdout);
+  } catch (e) {
+    log(`[x] Repair failed to execute: ${e.message}`);
+    return 0;
+  }
+
+  let ok = 0;
+  let fail = 0;
+  for (const r of results) {
+    if (r.ok) {
+      ok++;
+      log(` Removed: [${r.category}] ${r.regPath} -> ${r.name}`);
+    } else {
+      fail++;
+      const msg = r.error ? ` (${r.error})` : "";
+      log(` [x] Failed: [${r.category}] ${r.regPath} -> ${r.name}${msg}`);
     }
   }
 
   await writeJSON(regCleaner, []);
-  log("Repair complete.");
-  return found.length;
+  log(`Repair complete. Success: ${ok}, Failed: ${fail}`);
+  return ok;
 }
 
 module.exports = { advancedScan, fixRegistryIssues, REG_MAP };

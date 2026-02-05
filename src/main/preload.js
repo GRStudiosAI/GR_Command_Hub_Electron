@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld("api", {
   paste: () => clipboard.readText(),
 
   // App actions
+  updateCheck: () => ipcRenderer.invoke("update:check"),
+
   debloaterApply: (tweaks) => ipcRenderer.invoke("debloater:apply", tweaks),
   debloaterRevert: (tweaks) => ipcRenderer.invoke("debloater:revert", tweaks),
 
