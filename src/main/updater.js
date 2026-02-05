@@ -11,29 +11,31 @@ const path = require("path");
  *
  * Feed format (latest.json):
  * {
- *   "version": "0.2.0",
+ *   "version": "0.2.2",
  *   "channel": "stable",
  *   "notes": "...",
- *   "installer": "https://raw.githubusercontent.com/<ORG>/<REPO>/Update-Server/v0.2.0/GR_Command_Hub_Setup.exe",
- *   "portable": "https://raw.githubusercontent.com/<ORG>/<REPO>/Update-Server/v0.2.0/GR_Command_Hub_Portable.exe"
+ *   "installer": "https://github.com/GRStudiosAI/GR_Command_Hub_Electron/releases/download/v0.2.2/GR.Command.Hub.Setup.exe",
+ *   "portable": "https://github.com/GRStudiosAI/GR_Command_Hub_Electron/releases/download/v0.2.2/GR.Command.Hub.Portable.exe"
  * }
  */
 
 function readConfig() {
-  // Prefer project root config in dev, userData config in prod, fallback to defaults
+  // Defaults MUST be real so installed builds work even if update.config.json is missing.
   const defaults = {
-    updateServer: "https://raw.githubusercontent.com/<USER_OR_ORG>/<REPO>/Update-Server/latest.json",
+    updateServer:
+      "https://raw.githubusercontent.com/GRStudiosAI/GR_Command_Hub_Electron/Update-Server/latest.json",
     channel: "stable",
     checkOnStartup: true,
-    prefer: "installer" // installer | portable
+    prefer: "installer", // installer | portable
   };
 
+  // Search order:
+  // 1) Installed app (extraResources): process.resourcesPath/update.config.json
+  // 2) Dev / unpacked: app.getAppPath()/update.config.json
+  // 3) User override: %APPDATA%/gr-command-hub/update.config.json
   const candidates = [
-    // dev: repo root
-    path.join(process.cwd(), "update.config.json"),
-    // packaged: alongside resources (if you ship it)
     path.join(process.resourcesPath || "", "update.config.json"),
-    // user override
+    path.join(app.getAppPath(), "update.config.json"),
     path.join(app.getPath("userData"), "update.config.json"),
   ].filter(Boolean);
 
@@ -44,9 +46,10 @@ function readConfig() {
         return { ...defaults, ...cfg };
       }
     } catch {
-      // ignore malformed config
+      // ignore missing/malformed config
     }
   }
+
   return defaults;
 }
 
@@ -76,8 +79,12 @@ function normalizeVersion(v) {
 }
 
 function cmpVersions(a, b) {
-  const pa = normalizeVersion(a).split(".").map((n) => parseInt(n, 10) || 0);
-  const pb = normalizeVersion(b).split(".").map((n) => parseInt(n, 10) || 0);
+  const pa = normalizeVersion(a)
+    .split(".")
+    .map((n) => parseInt(n, 10) || 0);
+  const pb = normalizeVersion(b)
+    .split(".")
+    .map((n) => parseInt(n, 10) || 0);
   const len = Math.max(pa.length, pb.length);
   for (let i = 0; i < len; i++) {
     const da = pa[i] || 0;
@@ -91,8 +98,12 @@ function cmpVersions(a, b) {
 async function checkForUpdates({ silent = true } = {}, log = null) {
   const cfg = readConfig();
 
-  // If still placeholder, don't annoy the user.
-  if (String(cfg.updateServer || "").includes("<USER_OR_ORG>") || String(cfg.updateServer || "").includes("<REPO>")) {
+  // Safety: if someone re-introduced placeholders, don't annoy users.
+  if (
+    String(cfg.updateServer || "").includes("<") ||
+    String(cfg.updateServer || "").includes("USER_OR_ORG") ||
+    String(cfg.updateServer || "").includes("REPO")
+  ) {
     if (!silent) {
       await dialog.showMessageBox({
         type: "warning",
@@ -104,15 +115,16 @@ async function checkForUpdates({ silent = true } = {}, log = null) {
         buttons: ["OK"],
       });
     }
-    return { ok: false, reason: "not_configured" };
+    return { ok: false, status: "notConfigured", reason: "not_configured" };
   }
 
   try {
     const feed = await httpsGetJson(cfg.updateServer);
+
     const current = normalizeVersion(app.getVersion());
     const latest = normalizeVersion(feed.version);
 
-    if (!latest) return { ok: false, reason: "bad_feed" };
+    if (!latest) return { ok: false, status: "error", reason: "bad_feed" };
 
     if (cmpVersions(latest, current) <= 0) {
       if (!silent) {
@@ -123,10 +135,11 @@ async function checkForUpdates({ silent = true } = {}, log = null) {
           buttons: ["OK"],
         });
       }
-      return { ok: true, updateAvailable: false, current, latest };
+      return { ok: true, status: "upToDate", updateAvailable: false, current, latest };
     }
 
-    const prefer = (cfg.prefer || "installer").toLowerCase() === "portable" ? "portable" : "installer";
+    const prefer =
+      (cfg.prefer || "installer").toLowerCase() === "portable" ? "portable" : "installer";
     const url = feed[prefer] || feed.installer || feed.portable;
 
     const buttons = url ? ["Download", "Later"] : ["OK"];
@@ -146,7 +159,8 @@ async function checkForUpdates({ silent = true } = {}, log = null) {
     if (r.response === 0 && url) {
       await shell.openExternal(String(url));
     }
-    return { ok: true, updateAvailable: true, current, latest, url };
+
+    return { ok: true, status: "updateAvailable", updateAvailable: true, current, latest, url };
   } catch (e) {
     if (log) log(`[Updater] ${e.message}`);
     if (!silent) {
@@ -158,7 +172,7 @@ async function checkForUpdates({ silent = true } = {}, log = null) {
         buttons: ["OK"],
       });
     }
-    return { ok: false, reason: "error", error: e.message };
+    return { ok: false, status: "error", reason: "error", error: e.message };
   }
 }
 

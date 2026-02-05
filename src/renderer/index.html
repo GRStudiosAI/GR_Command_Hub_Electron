@@ -60,6 +60,11 @@
           <div class="winLine" id="winBuild">Build: —</div>
         </div>
 
+        <div class="updateBox">
+          <button id="btnCheckUpdates" class="updateBtn">🔄 Check for Updates</button>
+          <div id="updateStatus" class="updateStatus"></div>
+        </div>
+
         <div class="footer">Admin-required operations. Use carefully.</div>
       </aside>
 
@@ -78,5 +83,7 @@
     </div>
 
     <script src="./renderer.js"></script>
+
+    <div id="toastHost" class="toastHost" aria-live="polite" aria-atomic="true"></div>
   </body>
 </html>

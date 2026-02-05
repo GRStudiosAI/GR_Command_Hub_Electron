@@ -1,5 +1,5 @@
 {
-  "updateServer": "https://raw.githubusercontent.com/GR-Studios-AI/GR_Command_Hub/Update-Server/latest.json",
+  "updateServer": "https://raw.githubusercontent.com/GRStudiosAI/GR_Command_Hub_Electron/Update-Server/latest.json",
   "channel": "stable",
   "checkOnStartup": true
 }

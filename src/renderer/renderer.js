@@ -13,6 +13,64 @@ function log(line) {
   terminal.scrollTop = terminal.scrollHeight;
 }
 
+
+function showToast(message, type = "ok", ms = 2200) {
+  const host = document.getElementById("toastHost");
+  if (!host) return;
+
+  const el = document.createElement("div");
+  el.className = `toast ${type}`;
+  el.textContent = message;
+  host.appendChild(el);
+
+  setTimeout(() => {
+    try { el.remove(); } catch {}
+  }, ms);
+}
+
+async function runUpdateCheck() {
+  const btn = document.getElementById("btnCheckUpdates");
+  const status = document.getElementById("updateStatus");
+  if (!btn) return;
+
+  btn.disabled = true;
+  if (status) status.textContent = "Checking…";
+
+  try {
+    const res = await window.api.updateCheck();
+    // res: { status: "upToDate" | "updateAvailable" | "notConfigured" | "error", ... }
+    if (res && res.status === "upToDate") {
+      if (status) status.textContent = "Up to date.";
+      showToast("You’re up to date.", "ok");
+    } else if (res && res.status === "updateAvailable") {
+      if (status) status.textContent = `Update available: v${res.latest || res.version || "?"}`;
+      // main process shows dialog; toast is just a hint
+      showToast(`Update available: v${res.latest || res.version || "?"}`, "warn", 3200);
+    } else if (res && res.status === "notConfigured") {
+      if (status) status.textContent = "Updater not configured.";
+      showToast("Updater not configured.", "err", 3200);
+    } else if (res && res.status === "error") {
+      if (status) status.textContent = "Update check failed.";
+      showToast("Update check failed.", "err", 3200);
+    } else {
+      if (status) status.textContent = "";
+    }
+  } catch (e) {
+    if (status) status.textContent = "Update check failed.";
+    showToast("Update check failed.", "err", 3200);
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { if (status && status.textContent === "Checking…") status.textContent = ""; }, 800);
+  }
+}
+
+function initUpdateButton() {
+  const btn = document.getElementById("btnCheckUpdates");
+  if (!btn) return;
+  btn.addEventListener("click", () => runUpdateCheck());
+}
+
+
 function setActive(viewName) {
   document.querySelectorAll(".nav").forEach((b) => {
     b.classList.toggle("active", b.dataset.view === viewName);
@@ -607,6 +665,7 @@ document.querySelectorAll(".nav").forEach((btn) => {
 
   // Always-on OS info (left sidebar)
   loadSidebarVersionInfo();
+  initUpdateButton();
 
   renderDebloater();
 })();

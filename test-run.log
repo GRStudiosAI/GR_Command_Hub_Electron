@@ -1,6 +1,15 @@
  
 
-> gr-command-hub@1.0.0 start
+> gr-command-hub@0.2.2 start
 > electron .
 
 
+[11868:0204/215938.335:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Access is denied. (0x5)
+[11868:0204/215938.338:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Access is denied. (0x5)
+[11868:0204/215938.338:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[11868:0204/215938.338:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[11868:0204/215938.339:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[11868:0204/215938.339:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[11868:0204/215938.343:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Access is denied. (0x5)
+[11868:0204/215938.345:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[11868:0204/215938.345:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2

@@ -1,6 +1,6 @@
 {
   "name": "gr-command-hub",
-  "version": "1.0.0",
+  "version": "0.2.2",
   "description": "GR Command Hub (Electron) - Debloater, Purge Engine, Xbox FSE Toolkit, Registry Cleaner",
   "main": "src/main/main.js",
   "author": "TheBatGOD",
