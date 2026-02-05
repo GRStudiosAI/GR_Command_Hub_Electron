@@ -4,8 +4,8 @@
   "channel": "stable",
   "releaseDate": "2026-02-04",
   "notes": "Windows Scanner fixes, Tools Installer system added, Telemetry disable logic corrected, Registry Cleaner stability fixes.",
-  "installer": "https://raw.githubusercontent.com/GR-Studios-AI/GR_Command_Hub/Update-Server/v0.2.1/GR_Command_Hub_Setup.exe",
-  "portable": "https://raw.githubusercontent.com/GR-Studios-AI/GR_Command_Hub/Update-Server/v0.2.1/GR_Command_Hub_Portable.exe",
+  "installer": "https://github.com/GRStudiosAI/GR_Command_Hub_Electron/releases/download/v0.2.1/GR.Command.Hub.Setup.exe",
+  "portable": "https://github.com/GRStudiosAI/GR_Command_Hub_Electron/releases/download/v0.2.1/GR.Command.Hub.Portable.exe",
   "sha256": {
     "installer": "38124d18a0ad608e93751a8759717d4a7a5cffe6f5a47004421cf067bd5966e2",
     "portable": "07889479777e85ad0221824ee8c52e3ccc9805324bb6670337e06cf9480e5406"
