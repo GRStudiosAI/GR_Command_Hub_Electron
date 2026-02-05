@@ -1,14 +1,9 @@
 {
   "app": "GR Command Hub",
   "version": "0.2.2",
-  "channel": "stable",
-  "releaseDate": "2026-02-04",
-  "notes": "Update system stabilized with Update-Server integration, fixed updater 404 issues, added 'You're up to date' toast, improved Tools Installer reliability (winget handling), telemetry disable logic hardened, registry cleaner fix stability improved, and overall UI/UX polish.",
-  "installer": "https://github.com/GRStudiosAI/GR_Command_Hub_Electron/releases/download/v0.2.2/GR.Command.Hub.Setup.exe",
-  "portable": "https://github.com/GRStudiosAI/GR_Command_Hub_Electron/releases/download/v0.2.2/GR.Command.Hub.Portable.exe",
-  "sha256": {
-    "installer": "766bff7f8b82cc5f4e8c13c3941f2849603283cf8599a410952facae69733168",
-    "portable": "238ba25020cfbdefa064eaa16c45992f11361cedc9c6a64f0825e1aaeadf19f3"
-  },
-  "mandatory": false
+  "algorithm": "SHA256",
+  "files": {
+    "GR.Command.Hub.Setup.exe": "766bff7f8b82cc5f4e8c13c3941f2849603283cf8599a410952facae69733168",
+    "GR.Command.Hub.Portable.exe": "238ba25020cfbdefa064eaa16c45992f11361cedc9c6a64f0825e1aaeadf19f3"
+  }
 }
