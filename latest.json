@@ -7,7 +7,7 @@
   "installer": "https://raw.githubusercontent.com/GR-Studios-AI/GR_Command_Hub/Update-Server/v0.2.1/GR_Command_Hub_Setup.exe",
   "portable": "https://raw.githubusercontent.com/GR-Studios-AI/GR_Command_Hub/Update-Server/v0.2.1/GR_Command_Hub_Portable.exe",
   "sha256": {
-    "installer": "sha256:883b044ed432565bf8a0de4160a8ceec59d3e26448e33105662b3bb1e5dadffd",
+    "installer": "883b044ed432565bf8a0de4160a8ceec59d3e26448e33105662b3bb1e5dadffd",
     "portable": "ADD_PORTABLE_SHA256_HERE"
   },
   "mandatory": false
